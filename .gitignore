@@ -1,0 +1,135 @@
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+backend/downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.pyc
+
+# Flask
+instance/
+.webassets-cache
+.env
+.env.local
+*.db
+*.sqlite
+backend/temp/
+backend/.env
+backend/uploads/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+build/
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env.production
+frontend/.env.development
+frontend/.env
+
+
+# IDE
+.idea/
+.vscode/
+.history/
+*.swp
+*.swo
+*~
+
+backend/CLAUDE.md
+frontend/CLAUDE.md
+
+# Logs
+logs/
+*.log
+
+# Archives and backups
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Documentation files (optional - remove if you want to track)
+*.docx
+*.xlsx
+*.pdf
+*.odt
+
+# Deployment packages
+docid-frontend-*.zip
+docid-backend-*.zip
+
+# Sensitive data
+*.pem
+*.key
+*.cert
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# Database
+*.db
+*.sqlite3
+migrations/versions/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.~lock.*
+
+# Test files
+test_*.png
+test_*.jpg
+
+# All Markdown documentation files
+*.md
+
+# Database query utility (contains sensitive queries/credentials)
+backend/db_query.py
+backend/test_user_profile_api.py
+
+# Playwright E2E tests
+frontend/e2e/
+frontend/playwright.config.js
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/playwright/.cache/
+
