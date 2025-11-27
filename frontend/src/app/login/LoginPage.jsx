@@ -19,7 +19,7 @@ import {
   Slide,
   useTheme,
   Modal,
-  Paper,
+  Paper, 
   Snackbar
 } from '@mui/material';
 import {
