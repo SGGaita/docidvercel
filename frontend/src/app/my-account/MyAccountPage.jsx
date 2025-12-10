@@ -65,6 +65,10 @@ const MyAccountPage = () => {
   const [userStatistics, setUserStatistics] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [publicationToDelete, setPublicationToDelete] = useState(null);
+  const [userDrafts, setUserDrafts] = useState([]);
+  const [draftsLoading, setDraftsLoading] = useState(false);
+  const [deleteDraftConfirmOpen, setDeleteDraftConfirmOpen] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
   const [editFormData, setEditFormData] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
@@ -233,6 +237,38 @@ const MyAccountPage = () => {
     }
   };
 
+  // Function to fetch user's drafts
+  const fetchUserDrafts = async () => {
+    if (!user?.id) return;
+
+    try {
+      setDraftsLoading(true);
+      const response = await axios.get(`/api/publications/draft/by-user/${user.id}`);
+      
+      console.log('Drafts response:', response.data);
+      
+      // The backend returns a single draft object with hasDraft flag
+      if (response.data.hasDraft && response.data.formData) {
+        // Convert single draft to array format for rendering
+        setUserDrafts([{
+          id: user.id, // Use user ID as draft ID
+          form_data: response.data.formData,
+          created_at: response.data.lastSaved,
+          updated_at: response.data.lastSaved,
+          user_email: response.data.user_email
+        }]);
+      } else {
+        // No draft found
+        setUserDrafts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching drafts:', error);
+      setUserDrafts([]);
+    } finally {
+      setDraftsLoading(false);
+    }
+  };
+
   // Function to fetch ORCID data
   const fetchOrcidData = async (orcidId, accessToken) => {
     if (!orcidId) {
@@ -330,10 +366,11 @@ const MyAccountPage = () => {
     }
   };
 
-  // Fetch user publications and statistics when user is available
+  // Fetch user publications, drafts and statistics when user is available
   useEffect(() => {
     if (user?.id) {
       fetchUserPublications();
+      fetchUserDrafts();
       fetchUserStatistics();
     }
   }, [user?.id]);
@@ -576,6 +613,42 @@ const MyAccountPage = () => {
   const handleDeleteCancel = () => {
     setDeleteConfirmOpen(false);
     setPublicationToDelete(null);
+  };
+
+  // Handle edit draft
+  const handleEditDraft = (draft) => {
+    // Navigate to assign-docid page - the page will automatically load the draft
+    router.push('/assign-docid');
+  };
+
+  // Handle delete draft
+  const handleDeleteDraftClick = (draft) => {
+    setDraftToDelete(draft);
+    setDeleteDraftConfirmOpen(true);
+  };
+
+  const handleDeleteDraftConfirm = async () => {
+    if (!draftToDelete || !user?.email) return;
+
+    try {
+      await axios.delete(`/api/publications/draft/${user.email}`);
+      
+      // Remove draft from local state
+      setUserDrafts(userDrafts.filter(d => d.id !== draftToDelete.id));
+      
+      alert('Draft deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      alert('Failed to delete draft. Please try again.');
+    } finally {
+      setDeleteDraftConfirmOpen(false);
+      setDraftToDelete(null);
+    }
+  };
+
+  const handleDeleteDraftCancel = () => {
+    setDeleteDraftConfirmOpen(false);
+    setDraftToDelete(null);
   };
 
   const accordionSections = [
@@ -1739,8 +1812,190 @@ const MyAccountPage = () => {
             </Box>
           </Grid>
 
-          {/* Right Column - Table */}
+          {/* Right Column - Tables */}
           <Grid item xs={12} md={6}>
+            {/* My Drafts Table */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                mb: 3
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  My Drafts ({userDrafts.length})
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                width: '100%',
+                backgroundColor: theme.palette.background.default,
+                borderRadius: 1,
+                overflow: 'auto'
+              }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '60%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Title
+                      </TableCell>
+                      <TableCell 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '20%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Last Saved
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          backgroundColor: '#1565c0', 
+                          color: 'white', 
+                          width: '20%',
+                          borderBottom: `1px solid ${theme.palette.divider}`
+                        }}
+                      >
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {draftsLoading ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ py: 4 }}
+                        >
+                          <CircularProgress size={30} />
+                        </TableCell>
+                      </TableRow>
+                    ) : userDrafts.length === 0 ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={3} 
+                          align="center"
+                          sx={{ 
+                            py: 4,
+                            color: 'text.secondary',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          No drafts found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      userDrafts.map((draft) => {
+                        // Parse form data if it's a string
+                        let formData = draft.form_data;
+                        if (typeof formData === 'string') {
+                          try {
+                            formData = JSON.parse(formData);
+                          } catch (e) {
+                            console.error('Error parsing form data:', e);
+                            formData = {};
+                          }
+                        }
+
+                        const title = formData?.docId?.title || 'Untitled Draft';
+                        const lastSaved = draft.updated_at || draft.created_at;
+                        const formatDate = (dateString) => {
+                          if (!dateString) return 'Recently';
+                          const date = new Date(dateString);
+                          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        };
+
+                        return (
+                          <TableRow 
+                            key={draft.id} 
+                            sx={{ 
+                              '&:nth-of-type(odd)': { 
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? alpha(theme.palette.background.paper, 0.05)
+                                  : alpha(theme.palette.background.paper, 0.9)
+                              }, 
+                              '&:nth-of-type(even)': { 
+                                backgroundColor: theme.palette.background.paper 
+                              }, 
+                              '&:hover': { 
+                                backgroundColor: theme.palette.action.hover 
+                              },
+                              '& .MuiTableCell-root': {
+                                borderBottom: `1px solid ${theme.palette.divider}`,
+                                color: theme.palette.text.primary
+                              }
+                            }}
+                          >
+                            <TableCell>
+                              <Typography
+                                sx={{
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  lineHeight: 1.4
+                                }}
+                              >
+                                {title}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                {formatDate(lastSaved)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditDraft(draft)}
+                                sx={{
+                                  color: '#1565c0',
+                                  '&:hover': {
+                                    backgroundColor: alpha('#1565c0', 0.1)
+                                  }
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteDraftClick(draft)}
+                                sx={{
+                                  color: theme.palette.error.main,
+                                  '&:hover': {
+                                    backgroundColor: alpha(theme.palette.error.main, 0.1)
+                                  }
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Paper>
+
+            {/* My Publications Table */}
             <Paper
               elevation={0}
               sx={{
@@ -1938,7 +2193,7 @@ const MyAccountPage = () => {
         </Grid>
         {EditProfileModal}
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Publication Confirmation Modal */}
         <Modal
           open={deleteConfirmOpen}
           onClose={handleDeleteCancel}
@@ -1976,6 +2231,58 @@ const MyAccountPage = () => {
               </Button>
               <Button
                 onClick={handleDeleteConfirm}
+                variant="contained"
+                color="error"
+                sx={{
+                  backgroundColor: theme.palette.error.main,
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.error.main, 0.8),
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
+
+        {/* Delete Draft Confirmation Modal */}
+        <Modal
+          open={deleteDraftConfirmOpen}
+          onClose={handleDeleteDraftCancel}
+          aria-labelledby="delete-draft-confirmation-modal"
+        >
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: '400px' },
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            outline: 'none',
+          }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Delete Draft?
+            </Typography>
+            <Typography sx={{ mb: 3, color: 'text.secondary' }}>
+              Are you sure you want to delete this draft? This action cannot be undone.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                onClick={handleDeleteDraftCancel}
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary,
+                  borderColor: theme.palette.divider
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteDraftConfirm}
                 variant="contained"
                 color="error"
                 sx={{
